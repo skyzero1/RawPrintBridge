@@ -38,7 +38,14 @@ public class PrintForwardWorker : BackgroundService
             TcpClient client;
             try
             {
-                client = await listener.AcceptTcpClientAsync(stoppingToken);
+                // 兼容 net48（无带 CancellationToken 的 AcceptTcpClientAsync 重载）：
+                // 用 Task.WhenAny 竞速，服务停止时能立即退出
+                var acceptTask = listener.AcceptTcpClientAsync();
+                var finished = await Task.WhenAny(
+                    acceptTask,
+                    Task.Delay(Timeout.Infinite, stoppingToken));
+                if (finished != acceptTask) break;
+                client = await acceptTask;
             }
             catch (OperationCanceledException)
             {
@@ -98,7 +105,8 @@ public class PrintForwardWorker : BackgroundService
                     int n;
                     try
                     {
-                        n = await stream.ReadAsync(buffer, timeoutCts.Token);
+                        // 经典重载，net8.0 与 net48 通用
+                        n = await stream.ReadAsync(buffer, 0, buffer.Length, timeoutCts.Token);
                     }
                     catch (OperationCanceledException)
                     {

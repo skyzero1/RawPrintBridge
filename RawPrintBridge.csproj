@@ -1,13 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- 双目标：net8.0 给 Win10/11；net48 给 Win7 SP1（32 位，固定 x86） -->
+    <TargetFrameworks>net8.0;net48</TargetFrameworks>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>RawPrintBridge</RootNamespace>
     <AssemblyName>RawPrintBridge</AssemblyName>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <LangVersion>latest</LangVersion>
+    <PlatformTarget Condition="'$(TargetFramework)'=='net48'">x86</PlatformTarget>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)'=='net48'">
+    <!-- 无需本机安装 4.8 Targeting Pack 即可编译 net48 -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
