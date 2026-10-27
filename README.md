@@ -22,7 +22,7 @@
 
 两个版本功能、配置文件格式、日志完全一致，安装方式相同。
 
-## 配置说明（appsettings.json，全部可改）
+## 配置说明（appsettings.json）
 
 | 配置项 | 默认值 | 说明 |
 |---|---|---|
@@ -36,20 +36,40 @@
 
 日志文件：exe 目录下 `logs/rawprintbridge-yyyyMMdd.log`，每天一个。
 
-## 部署到现场电脑（Win7 SP1 示例）
+## 发布与部署
 
-1. 装 .NET Framework 4.8 Runtime（若未装）：https://dotnet.microsoft.com/download/dotnet-framework/net48
-2. 把 `publish\net48-win-x86` 目录整个拷贝到现场电脑，例如 `D:\RawPrintBridge\`。
-3. **先改 `appsettings.json`**：把 `TargetPrinterName` 改成真实打印机名称。
-4. 管理员运行 `deploy\install-service.bat`，服务注册为 `RawPrintBridge` 开机自启，崩溃自动重启。
-5. 防火墙放行 9100 端口（管理员命令行）：
+### 1. 发布
+
+需要现场电脑装有 .NET 8 Runtime 时（体积小）：
+
+```
+dotnet publish -c Release -r win-x64 --self-contained false
+```
+
+现场电脑**没有** .NET 8 Runtime 时（自包含，免安装运行时）：
+
+```
+dotnet publish -c Release -r win-x64 --self-contained true
+```
+
+产物在 `bin\Release\net8.0\win-x64\publish\`。
+
+### 2. 部署到现场电脑
+
+1. 把 `publish` 目录整个拷贝到现场电脑，例如 `D:\RawPrintBridge\`。
+
+2. **先改 `appsettings.json`**：把 `TargetPrinterName` 改成真实打印机名称。
+
+3. 双击 `deploy\install-service.bat`（需管理员权限），服务将注册为
+   `RawPrintBridge` 并设为开机自启，进程崩溃时自动重启。
+
+4. 防火墙放行 9100 端口（管理员 PowerShell）：
+
    ```
    netsh advfirewall firewall add rule name="RawPrintBridge 9100" dir=in action=allow protocol=TCP localport=9100
    ```
 
-Win10/11 机器同理，改用 `publish\net8.0-win-x64` 目录。
-
-## 服务器端配置
+### 3. 服务器端配置
 
 在打印应用/系统里添加打印机，端口类型选 **RAW / TCP 端口**，地址填现场电脑 IP，端口 9100。
 打印驱动选择与真实打印机匹配的型号（指令语言要一致）。
@@ -61,12 +81,10 @@ Win10/11 机器同理，改用 `publish\net8.0-win-x64` 目录。
   任务被扣在队列里发不出来；
 - 建议同时取消「双向支持」。
 
-## 卸载
+### 4. 卸载
 
 管理员运行 `deploy\uninstall-service.bat`。
 
 ## 已知限制
 
 - RAW 9100 是「发后即忘」协议，无法向服务器回传打印成功/失败状态。
-- 若发送方长时间不关闭连接也不发数据，任务要等 `IdleTimeoutSeconds` 超时后才会出纸。
-- 现场电脑必须开机且服务运行中，服务器才能打印。
